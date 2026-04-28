@@ -42,8 +42,26 @@ class SendMailController {
 
     const text =
       mode === 'code'
-        ? `Your verification code is ${otp}\n\nThis code expires in ${minutesLabel}.\n\nIf you didn't request this, you can safely ignore this email.`
-        : `Verify your email by clicking the link below:\n${verifyUrl}\n\nThis link expires in ${minutesLabel}.\n\nIf you didn't request this, you can safely ignore this email.`;
+        ? [
+            `Your ${organization} verification code`,
+            ``,
+            `   ${otp}`,
+            ``,
+            `Enter this code in the app to confirm your email address.`,
+            `It expires in ${minutesLabel}.`,
+            ``,
+            `Didn't request this? You can safely ignore this email.`,
+          ].join('\n')
+        : [
+            `Verify your email for ${organization}`,
+            ``,
+            `Tap the link below to confirm this email belongs to you:`,
+            `${verifyUrl}`,
+            ``,
+            `The link expires in ${minutesLabel}.`,
+            ``,
+            `Didn't request this? You can safely ignore this email.`,
+          ].join('\n');
 
     const html =
       mode === 'code'
@@ -65,88 +83,101 @@ class SendMailController {
     }
   }
 
-  private baseStyles(): string {
-    return `
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-      body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f4f6; color: #0f172a; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
-      .wrapper { padding: 40px 16px; background: #f3f4f6; }
-      .container { max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e5e7eb; box-shadow: 0 6px 24px -8px rgba(15,23,42,0.10); }
-      .header { padding: 28px 32px 8px; }
-      .brand-tag { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #6b7280; }
-      .heading { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; margin: 10px 0 6px; color: #0f172a; }
-      .lead { font-size: 14.5px; color: #475569; line-height: 1.6; margin: 0; }
-      .content { padding: 12px 32px 24px; }
-      .info { font-size: 12.5px; color: #6b7280; line-height: 1.6; text-align: center; margin: 18px 0 0; }
-      .footer { background: #f9fafb; padding: 16px 32px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 11px; color: #94a3b8; }
-    `;
+  private layout(organization: string, inner: string): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>${organization}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0b1220;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${organization} email verification</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f5f7;padding:40px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:16px;border:1px solid #e6e8ec;overflow:hidden;box-shadow:0 12px 32px -16px rgba(11,18,32,0.10);">
+          <tr>
+            <td style="padding:32px 36px 8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-size:11.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#5b6577;">${organization}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          ${inner}
+          <tr>
+            <td style="background:#fafbfc;padding:20px 36px;border-top:1px solid #eef0f3;">
+              <p style="font-size:11.5px;color:#8a93a3;margin:0;text-align:center;line-height:1.55;">
+                Didn't request this? You can safely ignore this email.<br/>
+                &copy; ${new Date().getFullYear()} ${organization}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
   }
 
   private codeOnlyTemplate(otp: string, organization: string, minutesLabel: string): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${organization} verification code</title>
-  <style>
-    ${this.baseStyles()}
-    .otp-box { background: #0f172a; color: #ffffff; padding: 22px; border-radius: 12px; text-align: center; letter-spacing: .5em; font-size: 30px; font-weight: 700; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; margin: 18px 0 8px; }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="container">
-      <div class="header">
-        <div class="brand-tag">${organization}</div>
-        <h1 class="heading">Your verification code</h1>
-        <p class="lead">Enter this code in the app to verify your email address.</p>
-      </div>
-      <div class="content">
-        <div class="otp-box">${otp}</div>
-        <p class="info">This code expires in ${minutesLabel}.<br/>If you didn't request this, you can safely ignore this email.</p>
-      </div>
-      <div class="footer">&copy; ${new Date().getFullYear()} ${organization}</div>
-    </div>
-  </div>
-</body>
-</html>`;
+    const inner = `
+      <tr>
+        <td style="padding:14px 36px 6px;">
+          <h1 style="font-size:22px;font-weight:700;color:#0b1220;margin:0 0 8px;letter-spacing:-0.012em;line-height:1.3;">Your verification code</h1>
+          <p style="font-size:14.5px;color:#5b6577;line-height:1.6;margin:0;">Use the code below to finish verifying your email. It works only once.</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 36px 4px;">
+          <div style="background:#0b1220;color:#ffffff;padding:22px;border-radius:12px;text-align:center;letter-spacing:.42em;font-size:30px;font-weight:700;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">${otp}</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:14px 36px 28px;">
+          <p style="font-size:12.5px;color:#8a93a3;margin:0;text-align:center;line-height:1.6;">Expires in <strong style="color:#5b6577;">${minutesLabel}</strong>. Never share this code with anyone.</p>
+        </td>
+      </tr>`;
+    return this.layout(organization, inner);
   }
 
   private linkOnlyTemplate(verifyUrl: string, organization: string, minutesLabel: string): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${organization} verify your email</title>
-  <style>
-    ${this.baseStyles()}
-    .btn-wrap { text-align: center; margin: 22px 0 12px; }
-    .verify-btn { display: inline-block; background: #0f172a; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-size: 15px; font-weight: 600; letter-spacing: .01em; }
-    .fallback { font-size: 11.5px; color: #6b7280; line-height: 1.55; text-align: center; word-break: break-all; margin-top: 10px; }
-    .fallback a { color: #0f172a; }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="container">
-      <div class="header">
-        <div class="brand-tag">${organization}</div>
-        <h1 class="heading">Verify your email address</h1>
-        <p class="lead">Tap the button below to confirm this email belongs to you. It only takes one click.</p>
-      </div>
-      <div class="content">
-        <div class="btn-wrap">
-          <a class="verify-btn" href="${verifyUrl}" target="_blank" rel="noopener noreferrer">Verify my email</a>
-        </div>
-        <p class="fallback">If the button doesn't work, copy &amp; paste this link:<br/><a href="${verifyUrl}">${verifyUrl}</a></p>
-        <p class="info">This link expires in ${minutesLabel}.<br/>If you didn't request this, you can safely ignore this email.</p>
-      </div>
-      <div class="footer">&copy; ${new Date().getFullYear()} ${organization}</div>
-    </div>
-  </div>
-</body>
-</html>`;
+    const inner = `
+      <tr>
+        <td style="padding:14px 36px 6px;">
+          <h1 style="font-size:22px;font-weight:700;color:#0b1220;margin:0 0 8px;letter-spacing:-0.012em;line-height:1.3;">Verify your email</h1>
+          <p style="font-size:14.5px;color:#5b6577;line-height:1.6;margin:0;">Tap the button below to confirm this email belongs to you. It only takes one click.</p>
+        </td>
+      </tr>
+      <tr>
+        <td align="center" style="padding:26px 36px 8px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td bgcolor="#0b1220" style="border-radius:10px;">
+                <a href="${verifyUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0b1220;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 36px;border-radius:10px;letter-spacing:.005em;">Verify my email</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:18px 36px 8px;">
+          <p style="font-size:12px;color:#8a93a3;margin:0 0 6px;text-align:center;letter-spacing:.04em;text-transform:uppercase;font-weight:600;">Or copy this link</p>
+          <div style="background:#f4f5f7;border:1px solid #e6e8ec;border-radius:8px;padding:10px 12px;word-break:break-all;font-size:11.5px;line-height:1.55;color:#5b6577;font-family:'SFMono-Regular',Consolas,Menlo,monospace;text-align:center;">
+            <a href="${verifyUrl}" style="color:#0b1220;text-decoration:none;">${verifyUrl}</a>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:14px 36px 28px;">
+          <p style="font-size:12.5px;color:#8a93a3;margin:0;text-align:center;line-height:1.6;">Link expires in <strong style="color:#5b6577;">${minutesLabel}</strong>.</p>
+        </td>
+      </tr>`;
+    return this.layout(organization, inner);
   }
 }
 
