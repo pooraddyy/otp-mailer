@@ -1,0 +1,49 @@
+{
+  "name": "otp-mailer",
+  "version": "1.3.0",
+  "main": "dist/index.js",
+  "description": "Free OTP email service with secure magic-link verification. Node.js + Express + MongoDB + Nodemailer. Vercel-ready.",
+  "author": "pooraddyy",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "vercel-build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pooraddyy/otp-mailer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pooraddyy/otp-mailer/issues"
+  },
+  "homepage": "https://github.com/pooraddyy/otp-mailer#readme",
+  "keywords": [
+    "otp",
+    "email",
+    "verification",
+    "magic-link",
+    "nodemailer",
+    "express",
+    "mongodb",
+    "vercel"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.22.1",
+    "mongoose": "^8.21.0",
+    "nodemailer": "^6.10.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.17",
+    "@types/nodemailer": "^6.4.23",
+    "dotenv": "^16.6.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}
