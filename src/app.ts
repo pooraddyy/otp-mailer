@@ -11,12 +11,14 @@ export function createApp(): Express {
 
   app.get('/', (_req, res) => {
     res.json({
-      message: 'Welcome to OTP service',
+      service: 'otp-mailer',
+      message: 'Two ways to verify an email: send a code, or send a magic-link button.',
       endpoints: {
-        generate: 'POST /api/otp/generate',
+        sendCode: 'POST /api/otp/generate     -> emails the OTP code only',
+        sendLink: 'POST /api/otp/send-link    -> emails the verify button only',
         verifyByCode: 'POST /api/otp/verify',
-        verifyByLink: 'GET /api/otp/verify-link?token=...',
-        status: 'GET /api/otp/status/:requestId',
+        verifyByLink: 'GET  /api/otp/verify-link?token=...',
+        status: 'GET  /api/otp/status/:requestId',
       },
     });
   });

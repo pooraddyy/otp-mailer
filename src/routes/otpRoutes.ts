@@ -15,32 +15,66 @@ router.post('/otp/generate', validateEmail, validateSpamMiddleware, async (req, 
     const {
       email,
       type = 'numeric',
-      organization = 'Python Today',
-      subject = 'Verification Code',
+      organization = 'Verification',
+      subject = 'Your verification code',
     } = req.body;
 
-    const { otp, requestId, verifyToken, validityMinutes } =
-      await otpController.generateOtp(email, type);
+    const { otp, requestId, validityMinutes } = await otpController.generateOtp(email, type);
+
+    await sendMailController.sendMail({
+      email,
+      organization,
+      subject,
+      validityMinutes,
+      mode: 'code',
+      otp,
+    });
+
+    res.status(200).json({
+      message: 'Verification code sent to your email',
+      mode: 'code',
+      requestId,
+      validityMinutes,
+    });
+  } catch (error) {
+    logger.error('Failed to send verification code', (error as Error).message);
+    res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/otp/send-link', validateEmail, validateSpamMiddleware, async (req, res) => {
+  try {
+    const {
+      email,
+      organization = 'Verification',
+      subject = 'Verify your email',
+    } = req.body;
+
+    const { verifyToken, requestId, validityMinutes } = await otpController.generateOtp(
+      email,
+      'numeric'
+    );
 
     const baseUrl = getBaseUrl(req);
     const verifyUrl = `${baseUrl}/api/otp/verify-link?token=${encodeURIComponent(verifyToken)}`;
 
     await sendMailController.sendMail({
       email,
-      otp,
       organization,
       subject,
       validityMinutes,
+      mode: 'link',
       verifyUrl,
     });
 
     res.status(200).json({
-      message: 'OTP is generated and sent to your email',
+      message: 'Verification link sent to your email',
+      mode: 'link',
       requestId,
       validityMinutes,
     });
   } catch (error) {
-    logger.error('Failed to generate OTP', (error as Error).message);
+    logger.error('Failed to send verification link', (error as Error).message);
     res.status(400).json({ error: (error as Error).message });
   }
 });
@@ -49,8 +83,7 @@ router.post('/otp/verify', validateEmail, async (req, res) => {
   try {
     const { email, otp } = req.body;
     await otpController.verifyOtp(email, otp?.toString());
-
-    res.status(200).json({ message: 'OTP is verified' });
+    res.status(200).json({ message: 'Email verified successfully', verified: true });
   } catch (error) {
     logger.error('Failed to verify OTP', (error as Error).message);
     res.status(400).json({ error: (error as Error).message });

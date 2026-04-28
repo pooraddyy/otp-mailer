@@ -1,8 +1,8 @@
 <div align="center">
 
-# 📬 OTP Email Service
+# 📬 OTP Mailer
 
-**Drop-in OTP email verification with a secure magic link — built for any web or mobile app.**
+**Two ways to verify an email — send a code, or send a one-click magic-link button. Pick one.**
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)
@@ -15,15 +15,18 @@
 
 ---
 
-## ✨ What you get
+## ✨ What is this?
 
-A small, self-contained service that does **one job extremely well**:
+A tiny, self-contained backend that does **email verification** for any web or mobile app. You hit one endpoint, the user gets a beautifully-formatted email, you tell us they're verified, done.
 
-1. **Send** a beautifully styled email with a numeric / alphanumeric / alphabet OTP.
-2. **Verify** the user — either by the typed code **or** by a single secure click on a **Verify my email** button in the email.
-3. **Tell your app** when the user clicked the link, via a status endpoint your frontend can poll.
+It supports **two completely separate flows** so you can pick whichever fits your UX:
 
-It's plain Node.js + Express on top of MongoDB, ships as a single Vercel serverless function, and works as a backend for any web app, mobile app, or website.
+| Flow | What's in the email | How user verifies | When to use |
+| --- | --- | --- | --- |
+| 🔢 **Code mode** | A 6-digit OTP code (only) | Types the code into your form | Classic OTP UX, mobile apps, signup forms |
+| 🔘 **Link mode** | A "Verify my email" button (only) | Clicks the button → lands on a beautiful confirmation page | One-tap verification, magic-link flows, slick onboarding |
+
+The two flows are independent. The code-only email **never** contains the verify button, and the link-only email **never** contains the OTP code.
 
 ---
 
@@ -31,12 +34,13 @@ It's plain Node.js + Express on top of MongoDB, ships as a single Vercel serverl
 
 | Improvement | What it means for you |
 | --- | --- |
-| 🔁 **Env-driven expiry text** | The "expires in N minutes" line in the email is read from `OTP_VALIDITY_PERIOD_MINUTES`. Change one env var → email updates. **No more hardcoded `120 minutes`.** |
-| 🔘 **Verify button in email** | Every OTP email now includes a polished **Verify my email** button alongside the code. |
-| 🔐 **Secure magic-link flow** | Each link carries an unguessable 32-byte token. Clicking it lands the user on a built-in success page and marks the OTP request as verified server-side. |
-| 📡 **Status polling endpoint** | `GET /api/otp/status/:requestId` lets your frontend know the moment the user clicks the email link — so you can auto-advance the UI. |
+| ✂️ **Two distinct flows, two distinct endpoints** | `POST /api/otp/generate` sends only the code. `POST /api/otp/send-link` sends only the button. No mixing, no leaking. |
+| 🔁 **Env-driven expiry text** | The "expires in N minutes" line in every email is read from `OTP_VALIDITY_PERIOD_MINUTES`. Change one env var → email updates. **No more hardcoded `120 minutes`.** |
+| 🔐 **Secure magic-link token** | Each link carries a random 32-byte token. Single-use. Marked verified server-side on click. |
+| 📡 **Status polling endpoint** | `GET /api/otp/status/:requestId` lets your frontend know the moment the user clicks the email link — so you can auto-advance the UI without a refresh. |
+| 🎨 **Animated success page** | When the user clicks the magic link they land on a polished page with an animated checkmark, soft gradient backdrop, and confetti sparkles. Mobile-ready. |
 | ☁️ **First-class Vercel support** | Includes `api/index.ts` serverless entry, `vercel.json`, `vercel-build` script, and a sane `.vercelignore`. Deploy in 2 minutes. |
-| 🧹 **Cleaned up codebase** | Smaller surface area, clearer module boundaries (`app.ts` vs `index.ts`), and friendlier docs. |
+| 🧹 **Cleaned codebase** | Smaller surface area, clear module boundaries (`app.ts` vs `index.ts`), fully type-checked, zero comments noise. |
 
 ---
 
@@ -45,7 +49,7 @@ It's plain Node.js + Express on top of MongoDB, ships as a single Vercel serverl
 - **Runtime:** Node.js 18+
 - **Framework:** Express 5
 - **Database:** MongoDB (Mongoose ODM)
-- **Email:** Nodemailer (Gmail SMTP out of the box, any SMTP with a tiny tweak)
+- **Email:** Nodemailer (Gmail SMTP out of the box, swap to any SMTP with a tiny tweak)
 - **Language:** TypeScript
 
 ---
@@ -57,22 +61,26 @@ git clone https://github.com/pooraddyy/otp-mailer.git
 cd otp-mailer
 npm install
 
-cp .env.example .env
-# Fill in MONGODB_URI, GMAIL_USER, GMAIL_PASS, etc.
+cp sample.env .env
+# Fill in MONGODB_URI, GMAIL_USER, GMAIL_PASS, OTP_VALIDITY_PERIOD_MINUTES, OTP_SIZE
 
 npm run dev
 # -> http://localhost:5001
 ```
 
-Try it:
+Quick smoke test:
 
 ```bash
+# Code-only email
 curl -X POST http://localhost:5001/api/otp/generate \
   -H "Content-Type: application/json" \
   -d '{"email":"you@example.com","organization":"My App"}'
-```
 
-You should receive an email with the **6-digit code** and a **Verify my email** button.
+# Link-only email
+curl -X POST http://localhost:5001/api/otp/send-link \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","organization":"My App"}'
+```
 
 ---
 
@@ -83,19 +91,7 @@ You should receive an email with the **6-digit code** and a **Verify my email** 
    - Framework preset → **Other**
    - Build command → leave default (Vercel runs `vercel-build` → `tsc`)
    - Output directory → blank
-3. Add environment variables (project settings → **Environment Variables**):
-
-   | Name | Value |
-   | --- | --- |
-   | `MONGODB_URI` | Your MongoDB Atlas URI |
-   | `GMAIL_USER` | Your Gmail address |
-   | `GMAIL_PASS` | A Gmail [App Password](https://myaccount.google.com/apppasswords) |
-   | `OTP_VALIDITY_PERIOD_MINUTES` | e.g. `10` |
-   | `OTP_SIZE` | e.g. `6` |
-   | `APP_BASE_URL` | *(optional)* `https://otp.yoursite.com`. If omitted, falls back to `https://$VERCEL_URL`. |
-   | `BLOCK_KEYWORDS_RULES` | *(optional)* `tempmail,disposable` |
-   | `ALLOWED_DOMAINS` | *(optional)* allow-list of email domains |
-
+3. Add environment variables (project settings → **Environment Variables**) — see the table below.
 4. Hit **Deploy**.
 
 > 🔓 **MongoDB Atlas tip:** allow `0.0.0.0/0` under Network Access (or use Atlas' Vercel integration), otherwise the function can't reach your cluster.
@@ -104,34 +100,72 @@ You should receive an email with the **6-digit code** and a **Verify my email** 
 
 ## ⚙️ Environment variables
 
+A copy of these lives in `sample.env` at the repo root.
+
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `PORT` | local only | Local dev port (Vercel ignores). |
+| `PORT` | local only | Local dev port (Vercel ignores). Default `5001`. |
 | `APP_BASE_URL` | no | Public URL used to build the magic link. Falls back to `https://$VERCEL_URL`, then to the request host. |
 | `MONGODB_URI` | ✅ | Mongo connection string. |
-| `OTP_VALIDITY_PERIOD_MINUTES` | ✅ | Validity window for both code and link. **Drives the expiry line in the email.** |
-| `OTP_SIZE` | ✅ | OTP length. |
+| `OTP_VALIDITY_PERIOD_MINUTES` | ✅ | Validity window for both code and link. **Drives the expiry line in every email.** |
+| `OTP_SIZE` | ✅ | OTP length. Recommended: `6`. |
 | `GMAIL_USER` | ✅ | Sender Gmail address. |
-| `GMAIL_PASS` | ✅ | Gmail App Password. |
-| `BLOCK_KEYWORDS_RULES` | no | Comma-separated keywords that block requests as spam. |
+| `GMAIL_PASS` | ✅ | Gmail [App Password](https://myaccount.google.com/apppasswords) — **not** your normal Gmail password. |
+| `BLOCK_KEYWORDS_RULES` | no | Comma-separated keywords that block requests as spam (e.g. `tempmail,disposable`). |
 | `ALLOWED_DOMAINS` | no | Comma-separated allow-list of email domains. Empty = allow all. |
 
 ---
 
-## 📡 API reference
+## 📡 Full API reference
 
 > Base URL: `http://localhost:5001` (local) or `https://<your-project>.vercel.app` (deployed)
 
-### `POST /api/otp/generate`
+### `POST /api/otp/generate` — send the **code-only** email
 
-Generates an OTP, emails it (code **and** magic link), and returns a `requestId` you'll use for polling.
+The email contains only the OTP code. No button, no link.
 
-**Body**
+**Request body**
 
 ```json
 {
   "email": "user@example.com",
   "type": "numeric",
+  "organization": "My App",
+  "subject": "Your verification code"
+}
+```
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `email` | string | — | Required. Recipient address. |
+| `type` | `numeric` / `alphanumeric` / `alphabet` | `numeric` | OTP character set. |
+| `organization` | string | `Verification` | Used as the brand tag at the top of the email and the "from" name. |
+| `subject` | string | `Your verification code` | Email subject line. |
+
+**Response** — `200 OK`
+
+```json
+{
+  "message": "Verification code sent to your email",
+  "mode": "code",
+  "requestId": "8f0a2c…",
+  "validityMinutes": 10
+}
+```
+
+> The user now opens their inbox and types the code into your form. Verify it with **`POST /api/otp/verify`** below.
+
+---
+
+### `POST /api/otp/send-link` — send the **link-only** email
+
+The email contains only a "Verify my email" button. No code shown anywhere.
+
+**Request body**
+
+```json
+{
+  "email": "user@example.com",
   "organization": "My App",
   "subject": "Verify your email"
 }
@@ -139,46 +173,58 @@ Generates an OTP, emails it (code **and** magic link), and returns a `requestId`
 
 | Field | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `email` | string | — | Required |
-| `type` | `numeric` / `alphanumeric` / `alphabet` | `numeric` | OTP character set |
-| `organization` | string | `Python Today` | Header & "from" name |
-| `subject` | string | `Verification Code` | Email subject |
+| `email` | string | — | Required. |
+| `organization` | string | `Verification` | Brand tag + "from" name. |
+| `subject` | string | `Verify your email` | Email subject. |
 
-**Response**
+**Response** — `200 OK`
 
 ```json
 {
-  "message": "OTP is generated and sent to your email",
+  "message": "Verification link sent to your email",
+  "mode": "link",
   "requestId": "8f0a2c…",
   "validityMinutes": 10
 }
 ```
 
+> Save the `requestId`. Use it with **`GET /api/otp/status/:requestId`** to detect the moment the user clicks the button.
+
 ---
 
-### `POST /api/otp/verify`
+### `POST /api/otp/verify` — verify the typed code
 
-Verifies via the **typed code**. Single-use — the OTP is consumed on success.
+Used together with `POST /api/otp/generate`.
 
 ```json
 { "email": "user@example.com", "otp": "123456" }
 ```
 
-✅ `200 { "message": "OTP is verified" }`
+✅ `200`
+
+```json
+{ "message": "Email verified successfully", "verified": true }
+```
+
+❌ `400 { "error": "Invalid OTP" }` if wrong/expired. The OTP is single-use — consumed on success.
 
 ---
 
-### `GET /api/otp/verify-link?token=…`
+### `GET /api/otp/verify-link?token=…` — magic-link landing page
 
-The endpoint the **Verify my email** button points at. Renders an HTML page (success or expired/invalid) and marks the matching OTP as `verified: true`.
+The endpoint the **Verify my email** button in the link-only email points at.
+
+- Renders an animated success page on success.
+- Renders an animated error page (with the reason) on failure.
+- Marks the matching request as `verified: true` so your app can pick it up via the status endpoint.
 
 You normally don't call this yourself — the user's email client does.
 
 ---
 
-### `GET /api/otp/status/:requestId`
+### `GET /api/otp/status/:requestId` — poll for link-mode verification
 
-Lets your app discover whether the user clicked the magic link.
+Used together with `POST /api/otp/send-link`. Lets your frontend discover whether the user clicked the magic link.
 
 ```json
 {
@@ -192,42 +238,55 @@ Lets your app discover whether the user clicked the magic link.
 | Field | Meaning |
 | --- | --- |
 | `found` | A request with this id exists |
-| `verified` | The user clicked the magic link |
+| `verified` | The user has clicked the magic link |
 | `expired` | The validity window has elapsed |
 
-Poll every couple of seconds while your verify modal is open.
+Poll every 2 seconds while your "check your email" screen is open.
 
 ---
 
-## 🔌 Use it from any app
+## 🔌 Use it from your app
 
-CORS is enabled, so you can hit it from a browser, mobile app, or another backend.
+CORS is enabled, so call it directly from a browser, mobile app, or another backend.
+
+### Example A — code-only flow (classic OTP)
 
 ```js
-// 1. Trigger the email
-const r = await fetch("https://your-otp-service.vercel.app/api/otp/generate", {
+// 1. Send the code
+const res = await fetch("https://your-otp-mailer.vercel.app/api/otp/generate", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    email: userEmail,
-    organization: "My App",
-    subject: "Verify your email",
-  }),
+  body: JSON.stringify({ email: userEmail, organization: "My App" }),
 });
-const { requestId } = await r.json();
+// response: { message, mode: "code", requestId, validityMinutes }
 
-// 2a. (Option A) Ask the user to type the code
-await fetch("https://your-otp-service.vercel.app/api/otp/verify", {
+// 2. User types the code into your form, you verify it:
+const v = await fetch("https://your-otp-mailer.vercel.app/api/otp/verify", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ email: userEmail, otp: typedCode }),
 });
+if (v.ok) {
+  // user is verified — proceed
+}
+```
 
-// 2b. (Option B) Poll until they click the magic link
+### Example B — link-only flow (one-click magic link)
+
+```js
+// 1. Send the verify-button email
+const res = await fetch("https://your-otp-mailer.vercel.app/api/otp/send-link", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email: userEmail, organization: "My App" }),
+});
+const { requestId } = await res.json();
+
+// 2. Show "Check your inbox" UI, then poll:
 const verified = await new Promise((resolve) => {
   const t = setInterval(async () => {
     const s = await fetch(
-      `https://your-otp-service.vercel.app/api/otp/status/${requestId}`,
+      `https://your-otp-mailer.vercel.app/api/otp/status/${requestId}`
     ).then((r) => r.json());
     if (s.verified) { clearInterval(t); resolve(true); }
     if (s.expired)  { clearInterval(t); resolve(false); }
@@ -235,7 +294,7 @@ const verified = await new Promise((resolve) => {
 });
 ```
 
-Both verification methods work in parallel — whichever the user does first wins.
+You can offer both flows in your UI ("Get a code" vs "Send me a verify link") — they live on different endpoints, so they never interfere with each other.
 
 ---
 
@@ -245,6 +304,7 @@ Both verification methods work in parallel — whichever the user does first win
 - **IP + email block-list** stored in MongoDB with a 24-hour TTL.
 - Per-email **regeneration cap** (max 3 attempts inside the validity window).
 - In-memory **block cache** for fast denial of repeat offenders.
+- Optional **domain allow-list** (`ALLOWED_DOMAINS`).
 
 ---
 
@@ -253,28 +313,45 @@ Both verification methods work in parallel — whichever the user does first win
 ```
 otp-mailer/
 ├── api/
-│   └── index.ts          # Vercel serverless entrypoint
+│   └── index.ts              # Vercel serverless entrypoint
 ├── src/
-│   ├── app.ts            # Express app factory
-│   ├── index.ts          # Local dev server
-│   ├── config/db.ts      # Mongoose connection (cached)
+│   ├── app.ts                # Express app factory
+│   ├── index.ts              # Local dev server
+│   ├── config/db.ts          # Mongoose connection (cached for serverless)
 │   ├── controllers/
-│   │   ├── otpController.ts
-│   │   └── sendMailController.ts
+│   │   ├── otpController.ts          # Generate, verify, status
+│   │   └── sendMailController.ts     # Two HTML templates (code-only / link-only)
 │   ├── models/
 │   │   ├── otpModel.ts
 │   │   └── blockListModel.ts
-│   ├── routes/otpRoutes.ts
-│   ├── views/verifyPage.ts   # HTML for the magic-link landing page
+│   ├── routes/otpRoutes.ts            # All five endpoints
+│   ├── views/verifyPage.ts            # Animated success/error landing page
 │   └── utils/
 │       ├── baseUrl.ts
 │       ├── generateOTP.ts
 │       ├── logger.ts
 │       └── validator.ts
+├── sample.env                # Copy to .env and fill in
 ├── vercel.json
 ├── tsconfig.json
 └── package.json
 ```
+
+---
+
+## ❓ FAQ
+
+**Can I show both the code and the button in one email?**
+Not from the built-in routes (and that's intentional — mixed emails confuse users). If you really need it, copy `sendMailController.ts`'s two templates into one and call `sendMail` with both `otp` and `verifyUrl`.
+
+**Can I use a non-Gmail SMTP?**
+Yes. In `src/controllers/sendMailController.ts`, replace the `nodemailer.createTransport({ service: 'gmail', … })` with a standard SMTP config (`host`, `port`, `secure`, `auth`).
+
+**Does the OTP code expire after one wrong attempt?**
+No — only on a successful verification, or when the validity window passes. Wrong attempts are counted; after 3, generation is blocked for a while.
+
+**What happens if the user clicks the magic link twice?**
+The first click marks the request verified. The second click still loads the success page (the token is still valid until expiry), but the request is already verified — your status endpoint just keeps returning `verified: true`.
 
 ---
 
