@@ -55,7 +55,7 @@ class SendMailController {
         : [
             `Verify your email for ${organization}`,
             ``,
-            `Tap the link below to confirm this email belongs to you:`,
+            `Open the link below to confirm this email belongs to you:`,
             `${verifyUrl}`,
             ``,
             `The link expires in ${minutesLabel}.`,
@@ -83,7 +83,68 @@ class SendMailController {
     }
   }
 
-  private layout(organization: string, inner: string): string {
+  private baseStyles(): string {
+    return `
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: #ffffff;
+        color: #000000;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrapper { padding: 60px 20px; background-color: #ffffff; }
+      .container {
+        max-width: 460px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        border: 1px solid #000000;
+      }
+      .header {
+        padding: 38px 24px 22px;
+        text-align: center;
+        border-bottom: 1px solid #000000;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: #000000;
+      }
+      .content { padding: 32px 40px 36px; text-align: center; }
+      .label {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #000000;
+        margin-bottom: 22px;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+      }
+      .info {
+        font-size: 13px;
+        color: #333333;
+        line-height: 1.65;
+        margin-top: 22px;
+      }
+      .footer {
+        background-color: #ffffff;
+        padding: 22px 20px;
+        text-align: center;
+        font-size: 11px;
+        color: #666666;
+        border-top: 1px solid #000000;
+      }
+      .footer p { margin: 4px 0; }
+      .brand { color: #000000; font-weight: 700; letter-spacing: 0.04em; }
+    `;
+  }
+
+  private codeOnlyTemplate(otp: string, organization: string, minutesLabel: string): string {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -91,93 +152,121 @@ class SendMailController {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
   <title>${organization}</title>
+  <style>
+    ${this.baseStyles()}
+    .otp-container {
+      background-color: #ffffff;
+      padding: 20px 0;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      border: 2px dashed #000000;
+    }
+    .otp {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 30px;
+      font-weight: 700;
+      color: #000000;
+      letter-spacing: 0.22em;
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0b1220;-webkit-font-smoothing:antialiased;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${organization} email verification</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f5f7;padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:16px;border:1px solid #e6e8ec;overflow:hidden;box-shadow:0 12px 32px -16px rgba(11,18,32,0.10);">
-          <tr>
-            <td style="padding:32px 36px 8px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="font-size:11.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#5b6577;">${organization}</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          ${inner}
-          <tr>
-            <td style="background:#fafbfc;padding:20px 36px;border-top:1px solid #eef0f3;">
-              <p style="font-size:11.5px;color:#8a93a3;margin:0;text-align:center;line-height:1.55;">
-                Didn't request this? You can safely ignore this email.<br/>
-                &copy; ${new Date().getFullYear()} ${organization}
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1>${organization}</h1>
+      </div>
+      <div class="content">
+        <div class="label">Verification Code</div>
+        <div class="otp-container">
+          <div class="otp">${otp}</div>
+        </div>
+        <div class="info">
+          This code expires in ${minutesLabel}.<br>
+          If you didn't request this, you can safely ignore this email.
+        </div>
+      </div>
+      <div class="footer">
+        <p>&copy; ${new Date().getFullYear()} <span class="brand">${organization}</span>. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
 </body>
 </html>`;
   }
 
-  private codeOnlyTemplate(otp: string, organization: string, minutesLabel: string): string {
-    const inner = `
-      <tr>
-        <td style="padding:14px 36px 6px;">
-          <h1 style="font-size:22px;font-weight:700;color:#0b1220;margin:0 0 8px;letter-spacing:-0.012em;line-height:1.3;">Your verification code</h1>
-          <p style="font-size:14.5px;color:#5b6577;line-height:1.6;margin:0;">Use the code below to finish verifying your email. It works only once.</p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:24px 36px 4px;">
-          <div style="background:#0b1220;color:#ffffff;padding:22px;border-radius:12px;text-align:center;letter-spacing:.42em;font-size:30px;font-weight:700;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;">${otp}</div>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:14px 36px 28px;">
-          <p style="font-size:12.5px;color:#8a93a3;margin:0;text-align:center;line-height:1.6;">Expires in <strong style="color:#5b6577;">${minutesLabel}</strong>. Never share this code with anyone.</p>
-        </td>
-      </tr>`;
-    return this.layout(organization, inner);
-  }
-
   private linkOnlyTemplate(verifyUrl: string, organization: string, minutesLabel: string): string {
-    const inner = `
-      <tr>
-        <td style="padding:14px 36px 6px;">
-          <h1 style="font-size:22px;font-weight:700;color:#0b1220;margin:0 0 8px;letter-spacing:-0.012em;line-height:1.3;">Verify your email</h1>
-          <p style="font-size:14.5px;color:#5b6577;line-height:1.6;margin:0;">Tap the button below to confirm this email belongs to you. It only takes one click.</p>
-        </td>
-      </tr>
-      <tr>
-        <td align="center" style="padding:26px 36px 8px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td bgcolor="#0b1220" style="border-radius:10px;">
-                <a href="${verifyUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0b1220;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 36px;border-radius:10px;letter-spacing:.005em;">Verify my email</a>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:18px 36px 8px;">
-          <p style="font-size:12px;color:#8a93a3;margin:0 0 6px;text-align:center;letter-spacing:.04em;text-transform:uppercase;font-weight:600;">Or copy this link</p>
-          <div style="background:#f4f5f7;border:1px solid #e6e8ec;border-radius:8px;padding:10px 12px;word-break:break-all;font-size:11.5px;line-height:1.55;color:#5b6577;font-family:'SFMono-Regular',Consolas,Menlo,monospace;text-align:center;">
-            <a href="${verifyUrl}" style="color:#0b1220;text-decoration:none;">${verifyUrl}</a>
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:14px 36px 28px;">
-          <p style="font-size:12.5px;color:#8a93a3;margin:0;text-align:center;line-height:1.6;">Link expires in <strong style="color:#5b6577;">${minutesLabel}</strong>.</p>
-        </td>
-      </tr>`;
-    return this.layout(organization, inner);
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>${organization}</title>
+  <style>
+    ${this.baseStyles()}
+    .btn-wrap { padding: 6px 0 4px; }
+    .btn {
+      display: inline-block;
+      background-color: #000000;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 14.5px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      padding: 14px 36px;
+      border-radius: 8px;
+      border: 2px solid #000000;
+    }
+    .fallback-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #000000;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin: 26px 0 10px;
+    }
+    .fallback {
+      background-color: #ffffff;
+      border: 2px dashed #000000;
+      border-radius: 8px;
+      padding: 12px 14px;
+      word-break: break-all;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+      font-size: 11.5px;
+      line-height: 1.55;
+      color: #000000;
+    }
+    .fallback a { color: #000000; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <div class="header">
+        <h1>${organization}</h1>
+      </div>
+      <div class="content">
+        <div class="label">Verify Your Email</div>
+        <div class="btn-wrap">
+          <a class="btn" href="${verifyUrl}" target="_blank" rel="noopener noreferrer">Verify my email</a>
+        </div>
+        <div class="fallback-label">Or copy this link</div>
+        <div class="fallback">
+          <a href="${verifyUrl}">${verifyUrl}</a>
+        </div>
+        <div class="info">
+          This link expires in ${minutesLabel}.<br>
+          If you didn't request this, you can safely ignore this email.
+        </div>
+      </div>
+      <div class="footer">
+        <p>&copy; ${new Date().getFullYear()} <span class="brand">${organization}</span>. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
   }
 }
 
