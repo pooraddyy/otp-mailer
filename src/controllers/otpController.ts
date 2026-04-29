@@ -32,7 +32,11 @@ class OtpController {
       const now = Date.now();
 
       const existingOtp = await Otp.findOneAndUpdate(
-        { email, createdAt: { $gte: new Date(now - validityPeriodMs) } },
+        {
+          email,
+          verified: { $ne: true },
+          createdAt: { $gte: new Date(now - validityPeriodMs) }
+        },
         { $inc: { attempts: 1 } },
         { new: true }
       ).lean();
@@ -49,6 +53,8 @@ class OtpController {
           validityMinutes
         };
       }
+
+      await Otp.deleteMany({ email });
 
       const otp = generateOTP(OTP_SIZE, type);
       const requestId = crypto.randomBytes(16).toString('hex');
